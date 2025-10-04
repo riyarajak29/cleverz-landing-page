@@ -1,0 +1,11 @@
+{
+  "Physics": {
+    "Kinematics": {
+      "1": ["Δx = displacement", "v = Δx/Δt"],
+      "2": ["Equations of motion: v = u + at, s = ut + ½at²"],
+      "3": ["Projectile basics, relative velocity"],
+      "4": ["Free fall, g = 9.8 m/s², graphical analysis"],
+      "5": ["Sample Q: u=20m/s → h = u²/2g ≈ 20.4m"]
+    }
+  }
+}

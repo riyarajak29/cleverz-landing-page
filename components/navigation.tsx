@@ -4,9 +4,11 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { BookOpen, Menu, X } from "lucide-react"
+import { BookOpen, Menu, X, LogOut } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/components/auth-context"
+import Image from "next/image"
 
 const navItems = [
   { href: "/", label: "Home" },
@@ -20,6 +22,7 @@ const navItems = [
 export function Navigation() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { user, logout, setShowAuthModal } = useAuth()
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -48,12 +51,43 @@ export function Navigation() {
 
           <div className="hidden md:flex items-center gap-3">
             <ThemeToggle />
-            <Button variant="outline" size="sm">
-              Log in
-            </Button>
-            <Button size="sm" className="transition-transform hover:scale-105">
-              Start Learning
-            </Button>
+            {!user ? (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setShowAuthModal(true)}>
+                  Log in
+                </Button>
+                <Button
+                  size="sm"
+                  className="transition-transform hover:scale-105"
+                  onClick={() => setShowAuthModal(true)}
+                >
+                  Start Learning
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 pr-1">
+                  {user.avatar ? (
+                    <Image
+                      src={user.avatar || "/placeholder.svg"}
+                      alt={`${user.username} avatar`}
+                      width={28}
+                      height={28}
+                      className="rounded-full border"
+                    />
+                  ) : (
+                    <div className="size-7 rounded-full border bg-muted grid place-items-center">
+                      <span className="text-[10px] font-medium uppercase">{(user.username || "U").slice(0, 2)}</span>
+                    </div>
+                  )}
+                  <span className="text-sm text-muted-foreground">{user.username}</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={logout} className="gap-2 bg-transparent">
+                  <LogOut className="size-4" />
+                  Log out
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -84,10 +118,40 @@ export function Navigation() {
               </Link>
             ))}
             <div className="flex flex-col gap-2 pt-3 border-t">
-              <Button variant="outline" size="sm">
-                Log in
-              </Button>
-              <Button size="sm">Start Learning</Button>
+              {!user ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowAuthModal(true)
+                      setMobileMenuOpen(false)
+                    }}
+                  >
+                    Log in
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setShowAuthModal(true)
+                      setMobileMenuOpen(false)
+                    }}
+                  >
+                    Start Learning
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    logout()
+                    setMobileMenuOpen(false)
+                  }}
+                >
+                  Log out
+                </Button>
+              )}
             </div>
           </div>
         )}

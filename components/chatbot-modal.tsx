@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Bot, Send, AlertCircle } from "lucide-react"
 import { useState, useEffect } from "react"
-import { SSOModal } from "@/components/sso-modal"
+import { useAuth } from "@/components/auth-context"
 
 interface Message {
   role: "user" | "assistant"
@@ -20,50 +19,46 @@ interface ChatbotModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   subject?: string
+  docked?: boolean
 }
 
-export function ChatbotModal({ open, onOpenChange, subject }: ChatbotModalProps) {
+export function ChatbotModal({ open, onOpenChange, subject, docked = false }: ChatbotModalProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
-  const [questionCount, setQuestionCount] = useState(0)
-  const [ssoOpen, setSSOOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const { chatQuestions, incrementChatCount, setShowAuthModal, user } = useAuth()
+  const isGuest = !user
 
-  // Reset when modal closes
   useEffect(() => {
     if (!open) {
       setMessages([])
       setInput("")
-      setQuestionCount(0)
     } else {
-      // Welcome message
       setMessages([
         {
           role: "assistant",
-          content: `Hello! I'm your AI tutor${subject ? ` for ${subject}` : ""}. Ask me any question and I'll help you understand the concepts. You have 3 free questions before signing in.`,
+          content: `Hello! I'm your AI tutor${subject ? ` for ${subject}` : ""}. ${
+            isGuest ? "You have 3 free questions before signing in." : "You're signed in — enjoy unlimited questions."
+          }`,
         },
       ])
     }
-  }, [open, subject])
+  }, [open, subject, isGuest])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim() || loading) return
 
-    // Check question limit
-    if (questionCount >= 3) {
-      setSSOOpen(true)
+    if (isGuest && chatQuestions >= 3) {
+      setShowAuthModal(true)
       return
     }
 
     const userMessage = input.trim()
     setInput("")
     setLoading(true)
-
-    // Add user message
     setMessages((prev) => [...prev, { role: "user", content: userMessage }])
 
-    // Simulate AI response (placeholder for actual AI SDK integration)
     setTimeout(() => {
       const responses = [
         "Great question! Let me explain this concept step by step...",
@@ -81,17 +76,23 @@ export function ChatbotModal({ open, onOpenChange, subject }: ChatbotModalProps)
             " [This is a demo response. Actual AI integration will provide detailed explanations with formulas and step-by-step solutions.]",
         },
       ])
-      setQuestionCount((prev) => prev + 1)
+      if (isGuest) incrementChatCount()
       setLoading(false)
     }, 1000)
   }
 
-  const remainingQuestions = 3 - questionCount
+  const remainingQuestions = isGuest ? Math.max(0, 3 - chatQuestions) : Number.POSITIVE_INFINITY
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl h-[600px] flex flex-col p-0">
+        <DialogContent
+          className={
+            docked
+              ? "sm:max-w-md w-full md:w-[420px] h-[70vh] md:h-[520px] flex flex-col p-0 fixed bottom-4 right-4 m-0 rounded-xl"
+              : "sm:max-w-2xl h-[600px] flex flex-col p-0"
+          }
+        >
           <DialogHeader className="px-6 pt-6 pb-4 border-b">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -103,8 +104,8 @@ export function ChatbotModal({ open, onOpenChange, subject }: ChatbotModalProps)
                   <DialogDescription>{subject ? `${subject} Assistant` : "Ask me anything"}</DialogDescription>
                 </div>
               </div>
-              <Badge variant={remainingQuestions > 0 ? "secondary" : "destructive"}>
-                {remainingQuestions} questions left
+              <Badge variant={isGuest && remainingQuestions > 0 ? "secondary" : isGuest ? "destructive" : "secondary"}>
+                {isGuest ? `${remainingQuestions} questions left` : "Unlimited"}
               </Badge>
             </div>
           </DialogHeader>
@@ -144,7 +145,7 @@ export function ChatbotModal({ open, onOpenChange, subject }: ChatbotModalProps)
             </div>
           </ScrollArea>
 
-          {questionCount >= 3 && (
+          {isGuest && chatQuestions >= 3 && (
             <div className="px-6 py-3 bg-destructive/10 border-t border-destructive/20">
               <div className="flex items-center gap-2 text-sm text-destructive">
                 <AlertCircle className="size-4" />
@@ -158,19 +159,19 @@ export function ChatbotModal({ open, onOpenChange, subject }: ChatbotModalProps)
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={questionCount >= 3 ? "Sign in to ask more questions..." : "Ask your question..."}
-                disabled={questionCount >= 3 || loading}
+                placeholder={
+                  isGuest && chatQuestions >= 3 ? "Sign in to ask more questions..." : "Ask your question..."
+                }
+                disabled={(isGuest && chatQuestions >= 3) || loading}
                 className="flex-1"
               />
-              <Button type="submit" size="icon" disabled={questionCount >= 3 || loading || !input.trim()}>
+              <Button type="submit" size="icon" disabled={(isGuest && chatQuestions >= 3) || loading || !input.trim()}>
                 <Send className="size-4" />
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
-
-      <SSOModal open={ssoOpen} onOpenChange={setSSOOpen} />
     </>
   )
 }
