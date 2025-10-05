@@ -6,9 +6,20 @@ import { ProgressDashboard } from "@/components/progress-dashboard"
 import { Button } from "@/components/ui/button"
 import { Lock } from "lucide-react"
 import { useAuth } from "@/components/auth-context"
+import { useEffect, useState } from "react"
 
 export default function ProgressPage() {
   const { user, setShowAuthModal } = useAuth()
+  const [progress, setProgress] = useState(null)
+
+  useEffect(() => {
+    if (user) {
+      // Fetch user progress from backend or local storage
+      fetch(`/api/progress?userId=${user.id}`)
+        .then((res) => res.json())
+        .then((data) => setProgress(data))
+    }
+  }, [user])
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -30,7 +41,7 @@ export default function ProgressPage() {
             </div>
           </section>
         ) : (
-          <ProgressDashboard />
+          <ProgressDashboard progress={progress} />
         )}
       </main>
       <Footer />
